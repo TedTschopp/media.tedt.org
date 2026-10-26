@@ -24,7 +24,7 @@ API = 'https://tedt.org/micropub/publisher'
 MEDIA = 'https://media.tedt.org/'
 MAX_FILE = 50 * 1024 * 1024
 MAX_SITE = 750 * 1024 * 1024
-MEDIA_ID = re.compile(r'^[a-f0-9]{64}\.(jpg|png|gif|webp|avif|mp3|ogg|wav|m4a|mp4|webm)$')
+MEDIA_ID = re.compile(r'^[a-f0-9]{64}\.(jpg|png|gif|webp|avif|mp3|ogg|wav|m4a|mp4|webm|vtt)$')
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
@@ -207,7 +207,37 @@ def file_hash(path):
     return digest.hexdigest()
 
 
-def media_manifest(public):
+def media_type(path, overrides):
+    with path.open('rb') as stream: head = stream.read(40)
+    suffix = path.suffix.lower()
+    checks = {
+        '.jpg': ('image/jpeg', head[:3] == b'\xff\xd8\xff'),
+        '.png': ('image/png', head[:8] == b'\x89PNG\r\n\x1a\n'),
+        '.gif': ('image/gif', head[:6] in (b'GIF87a', b'GIF89a')),
+        '.webp': ('image/webp', head[:4] == b'RIFF' and head[8:12] == b'WEBP'),
+        '.avif': ('image/avif', head[4:8] == b'ftyp' and (b'avif' in head[8:] or b'avis' in head[8:])),
+        '.mp3': ('audio/mpeg', head[:3] == b'ID3' or (len(head)>1 and head[0] == 255 and head[1] & 224 == 224)),
+        '.ogg': ('audio/ogg', head[:4] == b'OggS'),
+        '.wav': ('audio/wav', head[:4] == b'RIFF' and head[8:12] == b'WAVE'),
+        '.m4a': ('audio/mp4', head[4:8] == b'ftyp'),
+        '.mp4': ('video/mp4', head[4:8] == b'ftyp'),
+        '.webm': ('video/webm', head[:4] == b'\x1aE\xdf\xa3'),
+        '.vtt': ('text/vtt', head.startswith(b'WEBVTT')),
+    }
+    if suffix not in checks or not checks[suffix][1]:
+        raise ValueError('A media file has an unsupported or mismatched signature.')
+    mime = checks[suffix][0]
+    if suffix == '.webm' and overrides.get(path.name) == 'audio/webm': mime = 'audio/webm'
+    return mime
+
+
+def media_manifest(public, overrides=None):
+    known = {}
+    previous = public / 'manifest.json'
+    if previous.exists():
+        try: known = {Path(row['path']).name: row['content_type'] for row in json.loads(previous.read_text())['files']}
+        except (ValueError, KeyError, TypeError): raise ValueError('The existing media manifest is malformed.')
+    known.update(overrides or {})
     files = []
     total = 0
     allowed = {'index.html', 'CNAME', '.nojekyll', 'manifest.json'}
@@ -228,9 +258,7 @@ def media_manifest(public):
         digest = file_hash(path)
         if digest != path.stem:
             raise ValueError('A media filename does not match its checksum.')
-        mime = mimetypes.guess_type(path.name)[0]
-        if path.suffix == '.m4a':
-            mime = 'audio/mp4'
+        mime = media_type(path, known)
         files.append({'path': relative, 'url': MEDIA + relative, 'content_type': mime or 'application/octet-stream', 'size': size, 'sha256': digest})
     payload = {'version': 1, 'files': files}
     encoded = json.dumps(payload, indent=2) + '\n'
@@ -271,7 +299,7 @@ def sync_media(client, root, state_file):
     for _, target, data in prepared:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
-    manifest, body = media_manifest(public)
+    manifest, body = media_manifest(public, {row['id']: row['content_type'] for row, _, _ in prepared})
     (public / 'manifest.json').write_text(body)
     known = set(client.call('inventory')['ids'])
     external = sum(row['size'] for row in manifest['files'] if Path(row['path']).name not in known)
@@ -330,4 +358,5 @@ if __name__ == '__main__':
     except Exception as exc:
         # Never echo private queue payloads, credential-bearing requests or tokens.
         print(f'Publication stopped safely ({type(exc).__name__}); pending state is retained.', file=sys.stderr)
+        if isinstance(exc, ValueError): print(str(exc)[:200], file=sys.stderr)
         sys.exit(1)
