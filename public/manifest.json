@@ -1,4 +1,12 @@
 {
   "version": 1,
-  "files": []
+  "files": [
+    {
+      "path": "files/a20ea371de96f9fba18bb11a5120e0e69f4e99507397b45e70988faa99572be9.png",
+      "url": "https://media.tedt.org/files/a20ea371de96f9fba18bb11a5120e0e69f4e99507397b45e70988faa99572be9.png",
+      "content_type": "image/png",
+      "size": 653,
+      "sha256": "a20ea371de96f9fba18bb11a5120e0e69f4e99507397b45e70988faa99572be9"
+    }
+  ]
 }
