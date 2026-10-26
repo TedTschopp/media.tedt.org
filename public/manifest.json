@@ -1,4 +1,19 @@
 {
   "version": 1,
-  "files": []
+  "files": [
+    {
+      "path": "files/b766f24e30ca493982830ffd908dd155a116a8620b3a188b478510a67a929b9e.wav",
+      "url": "https://media.tedt.org/files/b766f24e30ca493982830ffd908dd155a116a8620b3a188b478510a67a929b9e.wav",
+      "content_type": "audio/wav",
+      "size": 16044,
+      "sha256": "b766f24e30ca493982830ffd908dd155a116a8620b3a188b478510a67a929b9e"
+    },
+    {
+      "path": "files/f501dd722878e91ef61fedfa637ff6250db9e5a71507219e6b22ccdeb5827916.mp4",
+      "url": "https://media.tedt.org/files/f501dd722878e91ef61fedfa637ff6250db9e5a71507219e6b22ccdeb5827916.mp4",
+      "content_type": "video/mp4",
+      "size": 1872,
+      "sha256": "f501dd722878e91ef61fedfa637ff6250db9e5a71507219e6b22ccdeb5827916"
+    }
+  ]
 }
