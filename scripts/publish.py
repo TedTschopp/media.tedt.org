@@ -18,6 +18,7 @@ import sys
 import tempfile
 import urllib.error
 import urllib.request
+import urllib.parse
 import uuid
 
 API = 'https://tedt.org/micropub/publisher'
@@ -121,7 +122,7 @@ def apply_site(client, root):
         target = safe_file(root, relative)
         if not row['publish'] and 'properties' in row:
             raise ValueError('Draft or deleted content must not be exported from private storage.')
-        result = subprocess.run(['bundle', 'exec', 'ruby', '_code/micropub_serialize.rb', '--check-media', '--existing-file', str(target)], input=json.dumps(row), text=True, capture_output=True)
+        result = subprocess.run(['bundle', 'exec', 'ruby', '_code/micropub_serialize.rb', '--existing-file', str(target)], input=json.dumps(row), text=True, capture_output=True)
         if result.returncode == 75:
             print(f'Entry {row["id"]} waits for referenced media.')
             continue
@@ -131,6 +132,17 @@ def apply_site(client, root):
         if rendered['path'] != str(relative) or (row['publish'] and not isinstance(rendered['content'], str)):
             raise ValueError('Serializer returned an invalid publication path.')
         body = rendered['content']
+        if row['publish']:
+            ids = sorted({urllib.parse.urlsplit(value).path.rsplit('/', 1)[-1] for value in rendered['media'] if value.startswith(MEDIA + 'files/')})
+            if not client.call('media-references', id=row['id'], revision=row['revision'], ids=ids).get('acknowledged'):
+                print(f'Entry {row["id"]} changed before media validation; retrying its current source later.')
+                continue
+            readiness = subprocess.run(['bundle', 'exec', 'ruby', '_code/micropub_serialize.rb', '--check-media', '--existing-file', str(target)], input=json.dumps(row), text=True, capture_output=True)
+            if readiness.returncode == 75:
+                print(f'Entry {row["id"]} waits for referenced media.')
+                continue
+            if readiness.returncode != 0:
+                raise ValueError('Media readiness validation failed; nothing was committed.')
         prepared.append((row, relative, target, body))
     for _, _, target, body in prepared:
         if body is None:
