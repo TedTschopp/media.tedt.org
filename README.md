@@ -9,3 +9,7 @@ The workflow validates the entire public tree and regenerates its manifest. Pend
 `scripts/publish.py` is copied from `TedTschopp/tedt.org/_code/micropub_publish.py`; update the source and its checked-in template together. The media-only publisher credential cannot read draft entry source. Its repository-scoped GITHUB_TOKEN cannot modify the main website repository. Keep private queue payloads outside the checkout and all public artifacts.
 
 Set `INDIEWEB_MEDIA_SYNC_ENABLED=true` only after the Micropub service and main rendering code are deployed. See the main repository's `docs/indieweb-publishing.md` for account setup, release and rollback.
+
+## Shared Visitor Analytics
+
+Published HTML uses the deferred TedT.org analytics v1 runtime for GA4, Microsoft Clarity, and Cloudflare Web Analytics. Authentication/payment operations, API responses, and independent downloads are excluded. Run `python3 scripts/site_analytics.py public --mode standard --check` on the final publication directory. Configuration and the integration contract are maintained at https://github.com/TedTschopp/tedt.org/blob/main/docs/analytics.md.
