@@ -1,4 +1,12 @@
 {
   "version": 1,
-  "files": []
+  "files": [
+    {
+      "path": "files/64733b3a8d7b98df860930b4217809cd46fc3f6bb9e8e069dcd7dca02867b35f.mp4",
+      "url": "https://media.tedt.org/files/64733b3a8d7b98df860930b4217809cd46fc3f6bb9e8e069dcd7dca02867b35f.mp4",
+      "content_type": "video/mp4",
+      "size": 26224508,
+      "sha256": "64733b3a8d7b98df860930b4217809cd46fc3f6bb9e8e069dcd7dca02867b35f"
+    }
+  ]
 }
